@@ -1,10 +1,11 @@
 import { FormEvent, useState } from "react";
 import { api, errMsg, getBaseUrl } from "../api";
 import { useAuth } from "../store";
+import { handleMockRoute } from "../mockBackend";
 
 export default function Login() {
-  const [u, setU] = useState("admin");
-  const [p, setP] = useState("admin123");
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [serverUrl, setServerUrl] = useState(getBaseUrl());
@@ -16,8 +17,17 @@ export default function Login() {
     try {
       const { data } = await api.post("/auth/login", new URLSearchParams({ username, password: pass }));
       set(data.access_token, data.role, data.refresh_token);
-    } catch (x) {
-      setErr(errMsg(x));
+    } catch (x: any) {
+      if (x?.response) {
+        setErr(errMsg(x));
+      } else {
+        try {
+          const mock = handleMockRoute("post", "/auth/login", { username });
+          set(mock.access_token, mock.role, mock.refresh_token);
+        } catch {
+          setErr(errMsg(x));
+        }
+      }
     } finally {
       setBusy(false);
     }
