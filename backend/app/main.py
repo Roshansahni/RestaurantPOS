@@ -25,7 +25,7 @@ async def security_headers(request, call_next):
     r.headers.update({"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
     return r
 
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","),
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 app.include_router(router)
 app.include_router(ext_router)
