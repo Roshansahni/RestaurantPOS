@@ -39,7 +39,13 @@ api.interceptors.request.use((c) => {
   // If on static hosting (like GitHub Pages) without an explicit backend URL, handle via in-browser engine directly
   if (isStaticHosting()) {
     c.adapter = async (config) => {
-      const mockData = handleMockRoute(config.method || "get", config.url || "", config.data, config.params);
+      let reqData = config.data;
+      if (typeof reqData === "string") {
+        try {
+          reqData = JSON.parse(reqData);
+        } catch {}
+      }
+      const mockData = handleMockRoute(config.method || "get", config.url || "", reqData, config.params);
       return {
         data: mockData,
         status: 200,
