@@ -2,6 +2,20 @@ import axios from "axios";
 import { useAuth } from "./store";
 import { handleMockRoute } from "./mockBackend";
 
+export const isStaticHosting = () => {
+  try {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage?.getItem?.("pos_api_url");
+      if (saved) return false;
+      const host = window.location?.hostname || "";
+      if (host.includes("github.io") || host.includes("vercel.app") || host.includes("netlify.app")) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+};
+
 export const getBaseUrl = () => {
   try {
     if (typeof window !== "undefined") {
@@ -16,20 +30,39 @@ export const getBaseUrl = () => {
 };
 
 export const api = axios.create({ baseURL: getBaseUrl() });
+
 api.interceptors.request.use((c) => {
   c.baseURL = getBaseUrl();
   const t = useAuth.getState().token;
   if (t) c.headers.Authorization = `Bearer ${t}`;
+
+  // If on static hosting (like GitHub Pages) without an explicit backend URL, handle via in-browser engine directly
+  if (isStaticHosting()) {
+    c.adapter = async (config) => {
+      const mockData = handleMockRoute(config.method || "get", config.url || "", config.data, config.params);
+      return {
+        data: mockData,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config
+      };
+    };
+  }
+
   return c;
 });
+
 let refreshing: Promise<string | null> | null = null;
 async function doRefresh(): Promise<string | null> {
   const rt = useAuth.getState().refresh; if (!rt) return null;
+  if (isStaticHosting()) return "mock-jwt-token";
   try {
     const r = await axios.post(`${getBaseUrl()}/auth/refresh`, { refresh_token: rt });
     useAuth.getState().set(r.data.access_token, r.data.role, r.data.refresh_token); return r.data.access_token;
   } catch { return null; }
 }
+
 api.interceptors.response.use(
   (r) => r,
   async (e) => {
@@ -60,11 +93,13 @@ api.interceptors.response.use(
     return Promise.reject(e);
   }
 );
+
 export const errMsg = (e: any) => e?.response?.data?.detail?.toString?.() ?? "Something went wrong. Check the server is running.";
 export let currency = "₹";
 export const setCurrency = (c: string) => { currency = c || "₹"; };
 export const inr = (n: number | string) => currency + Number(n).toFixed(2);
 export const assetUrl = (p: string) => getBaseUrl().replace(/\/api$/, "") + p;
+
 export async function download(path: string, name: string) {
   try {
     const r = await api.get(path, { responseType: "blob" });
@@ -76,6 +111,8 @@ export async function download(path: string, name: string) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
   }
 }
+
 export const wsUrl = () => getBaseUrl().replace(/^http/, "ws").replace(/\/api$/, "") + "/ws/kitchen";
+
 
 

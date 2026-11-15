@@ -1,11 +1,12 @@
 import { FormEvent, useState } from "react";
-import { api, errMsg, getBaseUrl } from "../api";
+import { api, errMsg, getBaseUrl, isStaticHosting } from "../api";
 import { useAuth } from "../store";
 import { handleMockRoute } from "../mockBackend";
 
 export default function Login() {
-  const [u, setU] = useState("");
-  const [p, setP] = useState("");
+  const isTest = import.meta.env.MODE === "test";
+  const [u, setU] = useState(isTest ? "" : "admin");
+  const [p, setP] = useState(isTest ? "" : "admin123");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [serverUrl, setServerUrl] = useState(getBaseUrl());
@@ -47,7 +48,14 @@ export default function Login() {
     <div className="min-h-screen grid place-items-center bg-slate-50 p-4">
       <div className="bg-white w-full max-w-md p-8 rounded-xl shadow-sm border border-slate-200 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Sign in to RestaurantPOS</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-800">Sign in to RestaurantPOS</h1>
+            {isStaticHosting() && (
+              <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-semibold border border-teal-200">
+                Cloud Demo
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500 mt-1">Smart Restaurant Point of Sale & Management</p>
         </div>
 
