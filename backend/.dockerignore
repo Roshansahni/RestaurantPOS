@@ -1,0 +1,5 @@
+.venv
+*.db
+uploads
+test_uploads
+__pycache__

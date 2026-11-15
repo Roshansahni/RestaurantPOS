@@ -1,0 +1,1 @@
+{"name":"ui-smoke","private":true,"type":"module","dependencies":{"puppeteer-core":"23.11.1","@sparticuz/chromium":"131.0.1"}}

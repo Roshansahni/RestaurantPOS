@@ -1,0 +1,3 @@
+
+## WebSocket
+`/ws/kitchen` – after connecting, the client sends its JWT as the first text message (within 10 s). The server replies `{"type":"ready"}`, then pushes `{"type":"orders_changed"}` after any order is created, paid or changes status; clients then reload `/api/orders`. Invalid or missing token closes the socket with code 4401.
