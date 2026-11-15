@@ -81,18 +81,28 @@ export default function Pos() {
       </aside>
 
       {receipt && (
-        <div className="fixed inset-0 bg-black/50 grid place-items-center p-4" role="dialog" aria-modal="true">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/50 grid place-items-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
             <div id="receipt" className="text-sm space-y-1">
-              {shop && <div className="text-center"><div className="font-bold text-lg">{shop.name}</div><div>{shop.address}</div>{shop.gstin && <div>GSTIN {shop.gstin}</div>}</div>}
-              <h2 className="font-bold">Tax Invoice {receipt.invoice}</h2>
-              {receipt.order.created_at && <div className="text-ink/70">{new Date(receipt.order.created_at + "Z").toLocaleString()} · Paid by {String(receipt.method).toUpperCase()}</div>}
-              {receipt.order.items.map((i: any, k: number) => <div key={k} className="flex justify-between"><span>{i.qty} × {i.name}</span><span>{inr(i.qty * i.unit_price)}</span></div>)}
-              <hr /><div className="flex justify-between"><span>Subtotal</span><span>{inr(receipt.order.subtotal)}</span></div>
-              {+receipt.order.discount > 0 && <div className="flex justify-between"><span>Discount</span><span>-{inr(receipt.order.discount)}</span></div>}
-              <div className="flex justify-between"><span>CGST</span><span>{inr(receipt.order.cgst)}</span></div>
-              <div className="flex justify-between"><span>SGST</span><span>{inr(receipt.order.sgst)}</span></div>
-              <div className="flex justify-between font-bold"><span>Total</span><span>{inr(receipt.order.total)}</span></div>
+              {shop && <div className="text-center"><div className="font-bold text-lg">{shop.name}</div><div>{shop.address}</div>{shop.gst_number && <div>GSTIN {shop.gst_number}</div>}</div>}
+              <h2 className="font-bold">Tax Invoice {receipt.invoice || `INV-${Date.now()}`}</h2>
+              {receipt.order?.created_at && (
+                <div className="text-ink/70">
+                  {new Date(receipt.order.created_at.replace(/Z$/, "") + "Z").toLocaleString()} · Paid by {String(receipt.method || "Cash").toUpperCase()}
+                </div>
+              )}
+              {((receipt.order?.items || receipt.items) || []).map((i: any, k: number) => (
+                <div key={k} className="flex justify-between">
+                  <span>{i.qty} × {i.name || i.product_name || "Item"}</span>
+                  <span>{inr((i.qty || 1) * (+i.unit_price || +i.price || 0))}</span>
+                </div>
+              ))}
+              <hr />
+              <div className="flex justify-between"><span>Subtotal</span><span>{inr(receipt.order?.subtotal || receipt.subtotal || receipt.order?.total || 0)}</span></div>
+              {+(receipt.order?.discount || 0) > 0 && <div className="flex justify-between"><span>Discount</span><span>-{inr(receipt.order.discount)}</span></div>}
+              <div className="flex justify-between"><span>CGST</span><span>{inr(receipt.order?.cgst || 0)}</span></div>
+              <div className="flex justify-between"><span>SGST</span><span>{inr(receipt.order?.sgst || 0)}</span></div>
+              <div className="flex justify-between font-bold"><span>Total</span><span>{inr(receipt.order?.total || receipt.amount || receipt.total || 0)}</span></div>
               {shop?.receipt_footer && <p className="text-center pt-2">{shop.receipt_footer}</p>}
             </div>
             <div className="flex gap-2 mt-4">

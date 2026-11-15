@@ -279,18 +279,37 @@ export function handleMockRoute(method: string, url: string, data?: any, params?
       const id = parseInt(cleanUrl.split("/")[2]);
       const method = data?.method || "cash";
       let ord = store.orders.find((o) => o.id === id);
-      if (ord) ord.paid = true;
+      if (ord) {
+        ord.paid = true;
+        ord.status = "preparing";
+      }
       saveStore(store);
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(id).padStart(6, "0")}`;
       return {
-        id: Date.now(),
-        order_id: id,
-        amount: ord?.total || "350.00",
+        invoice: invoiceNumber,
+        note: "Simulated payment",
         method,
-        created_at: new Date().toISOString(),
-        items: ord?.items || [],
-        subtotal: ord?.total || "350.00",
-        total: ord?.total || "350.00",
-        tax: "17.50"
+        order: {
+          id,
+          order_type: ord?.order_type || "dine_in",
+          status: ord?.status || "preparing",
+          table_id: ord?.table_id || null,
+          subtotal: ord?.subtotal || ord?.total || "350.00",
+          discount: ord?.discount || "0.00",
+          cgst: ord?.cgst || "8.75",
+          sgst: ord?.sgst || "8.75",
+          igst: "0.00",
+          total: ord?.total || "350.00",
+          paid: true,
+          priority: ord?.priority || "normal",
+          created_at: ord?.created_at || new Date().toISOString(),
+          items: (ord?.items || []).map((it: any) => ({
+            name: it.name || it.product_name || "Item",
+            qty: it.qty || 1,
+            unit_price: it.price || it.unit_price || "150.00",
+            gst_rate: it.gst_rate || "5"
+          }))
+        }
       };
     }
     if (m === "get") {
@@ -301,16 +320,28 @@ export function handleMockRoute(method: string, url: string, data?: any, params?
       const lines = (data?.items || []).map((it: any, idx: number) => {
         const prod = store.products.find((p) => p.id === it.product_id);
         const name = prod ? prod.name : `Item #${it.product_id}`;
+        const unit_price = prod ? prod.price : "150.00";
         return {
           id: idx + 1,
           product_id: it.product_id,
           name,
           product_name: name,
           qty: it.qty,
-          price: prod ? prod.price : "150.00"
+          unit_price,
+          price: unit_price,
+          gst_rate: prod?.gst_rate || "5"
         };
       });
-      const total = lines.reduce((acc: number, l: any) => acc + parseFloat(l.price) * l.qty, 0).toFixed(2);
+      const subtotalNum = lines.reduce((acc: number, l: any) => acc + parseFloat(l.price) * l.qty, 0);
+      const discountNum = parseFloat(data.discount || "0") || 0;
+      const taxable = Math.max(0, subtotalNum - discountNum);
+      const taxNum = taxable * 0.05;
+      const cgst = (taxNum / 2).toFixed(2);
+      const sgst = (taxNum / 2).toFixed(2);
+      const total = (taxable + taxNum).toFixed(2);
+      const subtotal = subtotalNum.toFixed(2);
+      const discount = discountNum.toFixed(2);
+
       const newOrder = {
         id: newId,
         order_number: `ORD-${newId}`,
@@ -318,6 +349,11 @@ export function handleMockRoute(method: string, url: string, data?: any, params?
         table_id: data.table_id || null,
         status: "pending",
         priority: data.priority || "normal",
+        subtotal,
+        discount,
+        cgst,
+        sgst,
+        igst: "0.00",
         total,
         paid: false,
         created_at: new Date().toISOString(),
